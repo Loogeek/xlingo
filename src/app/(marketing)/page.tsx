@@ -1,0 +1,5 @@
+const MarketingPage = () => {
+  return <div>This is a Marketing Page</div>;
+};
+
+export default MarketingPage;
