@@ -1,7 +1,7 @@
 import { FeedWrapper } from "@/components/FeedWrapper";
 import { StickyWrapper } from "@/components/StickyWrapper";
 import { UserProgress } from "@/components/UserProgress";
-import { getUserProgress } from "@/db/queries";
+import { getUserProgress } from "@/../db/queries";
 import { redirect } from "next/navigation";
 import { Header } from "./header";
 

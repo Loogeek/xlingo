@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs";
 import { cache } from "react";
 import { eq } from "drizzle-orm";
 
-import db from "@/db/drizzle";
+import db from "./drizzle";
 import { courses, userProgress } from "./schema";
 
 export const getUserProgress = cache(async () => {
