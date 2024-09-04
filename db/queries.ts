@@ -1,15 +1,16 @@
-import { auth } from "@clerk/nextjs";
 import { cache } from "react";
 import { eq } from "drizzle-orm";
+import { auth } from "@clerk/nextjs";
 
-import db from "./drizzle";
+import db from "@/../db/drizzle";
 import {
-  courses,
-  userProgress,
   challengeProgress,
-  units,
+  courses,
   lessons,
-} from "./schema";
+  units,
+  userProgress,
+  userSubscription,
+} from "@/../db/schema";
 
 export const getUserProgress = cache(async () => {
   const { userId } = await auth();
@@ -23,20 +24,6 @@ export const getUserProgress = cache(async () => {
     with: {
       activeCourse: true,
     },
-  });
-
-  return data;
-});
-
-export const getCourses = cache(async () => {
-  const data = await db.query.courses.findMany();
-
-  return data;
-});
-
-export const getCourseById = cache(async (courseId: number) => {
-  const data = await db.query.courses.findFirst({
-    where: eq(courses.id, courseId),
   });
 
   return data;
@@ -91,6 +78,30 @@ export const getUnits = cache(async () => {
   });
 
   return normalizedData;
+});
+
+export const getCourses = cache(async () => {
+  const data = await db.query.courses.findMany();
+
+  return data;
+});
+
+export const getCourseById = cache(async (courseId: number) => {
+  const data = await db.query.courses.findFirst({
+    where: eq(courses.id, courseId),
+    with: {
+      units: {
+        orderBy: (units, { asc }) => [asc(units.order)],
+        with: {
+          lessons: {
+            orderBy: (lessons, { asc }) => [asc(lessons.order)],
+          },
+        },
+      },
+    },
+  });
+
+  return data;
 });
 
 export const getCourseProgress = cache(async () => {
@@ -208,4 +219,47 @@ export const getLessonPercentage = cache(async () => {
   );
 
   return percentage;
+});
+
+const DAY_IN_MS = 86_400_000;
+export const getUserSubscription = cache(async () => {
+  const { userId } = await auth();
+
+  if (!userId) return null;
+
+  const data = await db.query.userSubscription.findFirst({
+    where: eq(userSubscription.userId, userId),
+  });
+
+  if (!data) return null;
+
+  const isActive =
+    data.stripePriceId &&
+    data.stripeCurrentPeriodEnd?.getTime()! + DAY_IN_MS > Date.now();
+
+  return {
+    ...data,
+    isActive: !!isActive,
+  };
+});
+
+export const getTopTenUsers = cache(async () => {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return [];
+  }
+
+  const data = await db.query.userProgress.findMany({
+    orderBy: (userProgress, { desc }) => [desc(userProgress.points)],
+    limit: 10,
+    columns: {
+      userId: true,
+      userName: true,
+      userImageSrc: true,
+      points: true,
+    },
+  });
+
+  return data;
 });
